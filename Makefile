@@ -1,4 +1,4 @@
-CC=gcc
+CC=g++
 SOURCES=protow.cc
 FLAGS=-Wl,--subsystem,windows protow.def
 all:

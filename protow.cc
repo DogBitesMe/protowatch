@@ -32,6 +32,7 @@ unsigned int D3__Descriptor__full_name = 0x3C9E0220;
 unsigned int D3__Message__GetDescriptor = 0x3CAEB630;
 unsigned int hook_return = 0x3CAD8894;
 unsigned int outputhook_return = 0x3CD1C1D4;
+unsigned int outputhead_return = 0x3CD03639;
 
 
 #define REBASE(lib, var, addr, oldbase) var = lib + addr - oldbase;
@@ -45,6 +46,8 @@ void RebaseFunctions()
 	REBASE(bnetlib, D3__Descriptor__full_name, 0x3C9E0220, 0x3C910000)
 	REBASE(bnetlib, hook_return, 0x3CAD8894, 0x3C910000)
 	REBASE(bnetlib, outputhook_return, 0x3CD1C1D4, 0x3C910000)
+	REBASE(bnetlib, outputhead_return, 0x3CD03639, 0x3C910000)
+	
 }
 
 char* D3__std__string_to_char(unsigned int astr) 
@@ -62,19 +65,65 @@ void __stdcall LDebugString(char* stringptr)
     #ifdef TEXTFILE_OUTPUT
 	FILE *file;	
 	file = fopen("dbgoutput.txt","a+");       
-    fprintf(file, "%s\r\n", stringptr);  
+    fprintf(file, "%s\n", stringptr);  
     fclose(file); 
 	#endif
 	
 	OutputDebugString(stringptr);
 }
 
-void print_send_header(int eax, int edi) {
-	char buf[200];
-	snprintf(buf, sizeof(buf)-1, "%x %x", eax, edi);
+void __stdcall lol_OutputDebugString(unsigned int msg) 
+{
+	char* stringptr = D3__std__string_to_char(msg);
+	
+    LDebugString(stringptr);
 }
 
-void print_msg()
+void hexdump(char* data, int size, char * outbuf, int osize) {
+	char *abuf = outbuf;
+	int remaining = osize - 4;
+	for (int i=0; i < size; i++) {
+		unsigned int next = (unsigned char) *data++;
+		if (next < 0x10) {
+			snprintf(abuf, remaining, "0%x ",next);
+		} else {
+			snprintf(abuf, remaining, "%x ", next);
+		}
+		abuf+=3;
+		remaining-=3;
+		if ((i+1) % 16 == 0) {
+			snprintf(abuf, remaining, "\n");
+			abuf += 1;
+			remaining -= 1;
+		}
+	}
+}
+
+void __stdcall print_send_header(int eax, int edi) {
+	try {
+		char buf[200];
+		char hexout[200];
+		hexdump((char*)edi, eax, hexout, sizeof(hexout));
+		snprintf(buf, sizeof(buf)-1, "[ Send %s ]", hexout);
+		LDebugString(buf);
+	}
+	catch( char *str )    {
+       LDebugString(str);
+   }	
+}
+void __stdcall print_recv_header(int eax, int edi) {
+	try {
+	char buf[200];
+	char hexout[200];
+	hexdump((char*)edi, eax, hexout, sizeof(hexout));
+	snprintf(buf, sizeof(buf)-1, "[ Recv %s ] ", hexout);
+	LDebugString(buf);
+	}
+	catch( char *str )    {
+       LDebugString(str);
+   }	
+}
+void __stdcall print_msg(int message)
 {
 	asm("		sub		$0x50, %esp\n\t");
 
@@ -153,7 +202,6 @@ void func1()
 		"		push	%eax\n\t");
 	asm("		mov		%0, %%eax\n\t" : : "i"(print_msg));
 	asm("       call    *%eax\n\t");
-	asm("		add		$4, %esp\n\t");
 	
 	asm("		mov 	%0, %%eax\n\t" : : "i"(func3));
 	asm("       call    *%eax\n\t"
@@ -168,6 +216,16 @@ void func1()
 
 	asm("		push	%0\n\t" : : "m"(hook_return));
 	asm("		ret		\n\t");
+}
+
+void __stdcall outputhook_(int message) {
+	try {
+		print_msg(message);
+	} 
+	catch(char*str) {
+		LDebugString("exception:");
+		LDebugString(str);
+	}
 }
 
 void outputhook()
@@ -188,10 +246,28 @@ void outputhook()
 	asm("	push	%ecx\n\t");
 	asm("	mov		%0, %%eax\n\t" : : "i"(print_msg));
 	asm("	call    *%eax\n\t");
-	asm("	add    $4, %esp\n\t");
 	asm("	popa\n\t");
 	asm("	push	%0\n\t" : : "m"(outputhook_return));
 	asm("	ret		\n\t");
+}
+
+void outputhead() {
+	asm("	pop %ebp\n\t");
+	
+	asm("	pusha\n\t");
+	asm("	test	%eax, %eax\n\t");
+	asm("	jz 1f\n\t");
+	asm("	push	%edi\n\t");
+	asm("	push	%eax\n\t");
+	asm("	mov		%0, %%eax\n\t" : : "i"(print_recv_header));
+	asm("	call    *%eax\n\t");
+	asm("	1:\n\t");
+	asm("	popa\n\t");
+	
+ asm (" mov     -0x2C4(%ebp), %cl");
+ asm (" movzx   -0x2BC(%ebp), %ebx");
+ asm ("	push	%0\n\t" : : "m"(outputhead_return));
+ asm ("	ret		\n\t");
 }
 
 unsigned int __stdcall wrap_getname(unsigned int f)
@@ -223,20 +299,6 @@ int __stdcall check_ignore_msg(unsigned int msg)
 	return 0;
 }
 
-void __stdcall lol_OutputDebugString(unsigned int msg) 
-{
-	char* stringptr = D3__std__string_to_char(msg);
-	
-    #ifdef TEXTFILE_OUTPUT
-	FILE *file;	
-	file = fopen("dbgoutput.txt","a+");       
-    fprintf(file, "%s\r\n", stringptr);  
-    fclose(file); 
-	#endif
-	
-	OutputDebugString(stringptr);
-}
-
 void hookPushRet( unsigned int address,	unsigned int jumpwhere)
 {
   DWORD old;
@@ -248,12 +310,38 @@ void hookPushRet( unsigned int address,	unsigned int jumpwhere)
   FlushInstructionCache(GetCurrentProcess(), (void*)address, 6);
 }
 
+void hookAddr( unsigned int address,	unsigned int calladdr)
+{
+  DWORD old;
+  VirtualProtect((void*)address, 4, PAGE_EXECUTE_READWRITE, &old);
+
+	*(unsigned int*)(address)  = calladdr;
+
+  VirtualProtect((void*)address, 4, old, &old);
+  FlushInstructionCache(GetCurrentProcess(), (void*)address, 4);
+}
+
+HINSTANCE__* __stdcall loadlibrary_(LPCWSTR lpLibFileName) {
+	HINSTANCE__* lib = LoadLibraryW(lpLibFileName);
+	HINSTANCE__* hlib = GetModuleHandle("battle.net.dll");
+	if (hlib != 0) {
+		RebaseFunctions();
+		
+
+		hookPushRet((unsigned int)hlib + 0x3CD0362C - 0x3C910000, (unsigned int)&outputhead);
+
+		hookPushRet((unsigned int)hlib + 0x3CAD888C - 0x3C910000, (unsigned int)&func1);
+		hookPushRet((unsigned int)hlib + 0x3CD1C1CC - 0x3C910000, (unsigned int)&outputhook);
+	}
+	return lib;
+}
+
 int __declspec(dllexport) __stdcall StartDll(int param)
 {
   #ifdef TEXTFILE_OUTPUT
 	FILE *file;	
 	file = fopen("dbgoutput.txt","w+");       
-    fprintf(file, "Starting Log\r\n");  
+    fprintf(file, "Starting Log\n");  
     fclose(file); 
   #endif
 	
@@ -262,13 +350,11 @@ int __declspec(dllexport) __stdcall StartDll(int param)
 	return 0;
   }
   
-  HINSTANCE hlib = LoadLibraryA("bnet/battle.net.dll");
- 
-  RebaseFunctions();
- 
-  hookPushRet((unsigned int)hlib + 0x3CAD888C - 0x3C910000, (unsigned int)&func1);
-  hookPushRet((unsigned int)hlib + 0x3CD1C1CC - 0x3C910000, (unsigned int)&outputhook);
+  //HINSTANCE hlib = LoadLibraryA("bnet/battle.net.dll");
+
+  hookAddr(0x011111F4, (unsigned int) &loadlibrary_);
   
+ 
   #ifndef EASYINJECTION
   //code that jmps to the Entry Point of the exe
   TCHAR exepath[1000];
