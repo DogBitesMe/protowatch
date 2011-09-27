@@ -39,7 +39,7 @@ unsigned int outputhead_return = 0x3CD03639;
 
 void RebaseFunctions()
 {
-	unsigned int bnetlib = (unsigned int) GetModuleHandle("bnet/battle.net.dll");
+	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
 	REBASE(bnetlib, D3__std__String, 0x3CE4A528, 0x3C910000)
 	REBASE(bnetlib, D3__TextFormat__PrintToString, 0x3CB4E280, 0x3C910000)
 	REBASE(bnetlib, D3__Message__GetDescriptor, 0x3CAEB630, 0x3C910000)
@@ -324,12 +324,16 @@ void hookAddr( unsigned int address,	unsigned int calladdr)
 void TryHook() {
 	HINSTANCE__* hlib = GetModuleHandle("battle.net.dll");
 	if (hlib != 0) {
-		RebaseFunctions();
-		
+		if (IsBadReadPtr((void*)((unsigned int)hlib + 0x3CD0362C - 0x3C910000),4)) {
+			LDebugString("TryHook: bad read ptr?");
+			return;
+		}
 		if (*(unsigned int*)((unsigned int)hlib + 0x3CD0362C - 0x3C910000) ==  (unsigned int)&outputhead) {
 			LDebugString("Lib seems already hooked.");
 			return;
 		}
+		RebaseFunctions();
+		
 		hookPushRet((unsigned int)hlib + 0x3CD0362C - 0x3C910000, (unsigned int)&outputhead);
 
 		hookPushRet((unsigned int)hlib + 0x3CAD888C - 0x3C910000, (unsigned int)&func1);
