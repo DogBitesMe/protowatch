@@ -60,7 +60,7 @@ char* D3__std__string_to_char(unsigned int astr)
 	}
 }
 
-void __stdcall LDebugString(char* stringptr) 
+void __stdcall LDebugString(const char* stringptr) 
 {
     #ifdef TEXTFILE_OUTPUT
 	FILE *file;	
@@ -321,18 +321,29 @@ void hookAddr( unsigned int address,	unsigned int calladdr)
   FlushInstructionCache(GetCurrentProcess(), (void*)address, 4);
 }
 
-HINSTANCE__* __stdcall loadlibrary_(LPCWSTR lpLibFileName) {
-	HINSTANCE__* lib = LoadLibraryW(lpLibFileName);
+void TryHook() {
 	HINSTANCE__* hlib = GetModuleHandle("battle.net.dll");
 	if (hlib != 0) {
 		RebaseFunctions();
 		
-
+		if (*(unsigned int*)((unsigned int)hlib + 0x3CD0362C - 0x3C910000) ==  (unsigned int)&outputhead) {
+			LDebugString("Lib seems already hooked.");
+			return;
+		}
 		hookPushRet((unsigned int)hlib + 0x3CD0362C - 0x3C910000, (unsigned int)&outputhead);
 
 		hookPushRet((unsigned int)hlib + 0x3CAD888C - 0x3C910000, (unsigned int)&func1);
 		hookPushRet((unsigned int)hlib + 0x3CD1C1CC - 0x3C910000, (unsigned int)&outputhook);
+
+		LDebugString("Lib Should be hooked");
+	} else {
+		LDebugString("TryHook: battle.net.dll not loaded yet");
 	}
+}
+
+HINSTANCE__* __stdcall loadlibrary_(LPCWSTR lpLibFileName) {
+	HINSTANCE__* lib = LoadLibraryW(lpLibFileName);
+	TryHook();
 	return lib;
 }
 
@@ -352,10 +363,11 @@ int __declspec(dllexport) __stdcall StartDll(int param)
   
   //HINSTANCE hlib = LoadLibraryA("bnet/battle.net.dll");
 
-  hookAddr(0x011111F4, (unsigned int) &loadlibrary_);
+  TryHook();
   
- 
-  #ifndef EASYINJECTION
+#ifdef EASYINJECTION
+  hookAddr(0x011111F4, (unsigned int) &loadlibrary_);
+#else
   //code that jmps to the Entry Point of the exe
   TCHAR exepath[1000];
   if (0 == GetModuleFileName(0, exepath, 1000)){
@@ -377,7 +389,7 @@ int __declspec(dllexport) __stdcall StartDll(int param)
 		  :"r"(entry_point)
 		  :"%eax", "%ebx"
 		);
-  #endif
+#endif
 }
 
 BOOL WINAPI
