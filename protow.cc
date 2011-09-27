@@ -365,9 +365,9 @@ int __declspec(dllexport) __stdcall StartDll(int param)
 
   TryHook();
   
-#ifdef EASYINJECTION
+#ifndef EASYINJECTION
   hookAddr(0x011111F4, (unsigned int) &loadlibrary_);
-#else
+
   //code that jmps to the Entry Point of the exe
   TCHAR exepath[1000];
   if (0 == GetModuleFileName(0, exepath, 1000)){
