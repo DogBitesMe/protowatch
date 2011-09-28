@@ -116,8 +116,6 @@ BOOL InjectDLL(DWORD dwProcessID, const char *dllName){
 		MessageBox(NULL, buf, "Loader", 0);
 		return false;
 	}
-	sprintf(buf, "CreateRemoteThread() %x", (UINT)RemoteString);
-	MessageBox(NULL, buf, "Loader", 0);
 	if(!CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)(LPVOID)(RemoteString), (LPVOID)((UINT)RemoteString + CodeSize), 0, NULL)){
 		sprintf(buf, "CreateRemoteThread() failed: %d", GetLastError());
 		MessageBox(NULL, buf, "Loader", 0);
