@@ -1,15 +1,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <windows.h>
+#include "protow.h"
 
 //#define EASYINJECTION
 #define TEXTFILE_OUTPUT
 	
-	
-int __stdcall check_ignore_msg(unsigned int msg);
-void __stdcall lol_OutputDebugString(unsigned int msg);
-
-
 int tlsIndex;
 
 
@@ -26,29 +22,77 @@ void __stdcall func3() {
 }
 
 
-unsigned int D3__std__String = 0x3CE4A528;
+//unsigned int D3__std__String = 0x3CE4A528;
+unsigned int D3__std__String_delete = 0; 
 unsigned int D3__TextFormat__PrintToString = 0x3CB4E280;
 unsigned int D3__Descriptor__full_name = 0x3C9E0220;
 unsigned int D3__Message__GetDescriptor = 0x3CAEB630;
-unsigned int hook_return = 0x3CAD8894;
-unsigned int outputhook_return = 0x3CD1C1D4;
-unsigned int outputhead_return = 0x3CD03639;
+
+unsigned int recvheader_entry = 0;
+unsigned int recvheader_return = 0;
+unsigned int send_message_entry = 0;
+unsigned int send_message_return = 0;
+unsigned int message_parse_hook = 0;
+unsigned int message_parse_return = 0;
 
 
 #define REBASE(lib, var, addr, oldbase) var = lib + addr - oldbase;
 
+/*
+0.3
 void RebaseFunctions()
 {
 	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
-	REBASE(bnetlib, D3__std__String, 0x3CE4A528, 0x3C910000)
+	REBASE(bnetlib, D3__std__String, 0x3CE4B234, 0x3C910000)
 	REBASE(bnetlib, D3__TextFormat__PrintToString, 0x3CB4E280, 0x3C910000)
 	REBASE(bnetlib, D3__Message__GetDescriptor, 0x3CAEB630, 0x3C910000)
 	REBASE(bnetlib, D3__Descriptor__full_name, 0x3C9E0220, 0x3C910000)
 	REBASE(bnetlib, hook_return, 0x3CAD8894, 0x3C910000)
+
+//.text:3CD1D094                 mov     edx, [ecx]
+//.text:3CD1D096                 mov     edx, [edx+28h]
+//.text:3CD1D099                 lea     eax, [edi+ebx]
+//.text:3CD1D09C                 push    eax
+//.text:3CD1D09D                 call    edx
 	REBASE(bnetlib, outputhook_return, 0x3CD1C1D4, 0x3C910000)
+
 	REBASE(bnetlib, outputhead_return, 0x3CD03639, 0x3C910000)
-	
+	REBASE(bnetliv, outputhead, 0x3CD1D094, 0x3C910000)
+	REBASE(bnetliv, message_parse_hook, 0x3CAD955C, 0x3C910000)
+	 0x3CD0362C // recv header
 }
+*/
+
+void RebaseFunctions()
+{
+	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
+//	REBASE(bnetlib, D3__std__String, 0x3CE4B258, 0x3C910000)
+	REBASE(bnetlib, D3__std__String_delete, 0x3CE4B550, 0x3C910000)
+	
+	REBASE(bnetlib, D3__TextFormat__PrintToString, 0x3CB4EF60, 0x3C910000)
+	REBASE(bnetlib, D3__Message__GetDescriptor, 0x3CAEC320, 0x3C910000)
+	REBASE(bnetlib, D3__Descriptor__full_name, 0x3C9AD830, 0x3C910000)
+	REBASE(bnetlib, message_parse_hook, 0x3CAD955C, 0x3C910000)
+	REBASE(bnetlib, message_parse_return, 0x3CAD9564, 0x3C910000)
+	
+/*
+.text:3CD045BC                 mov     cl, [ebp-2C4h]
+.text:3CD045C2                 movzx   ebx, word ptr [ebp-2BCh]
+.text:3CD045C9                 cmp     cl, 0FEh
+*/
+	REBASE(bnetlib, recvheader_entry, 0x3CD045BC, 0x3C910000)
+	REBASE(bnetlib, recvheader_return, 0x3CD045C9, 0x3C910000)
+
+/*
+.text:3CD1D094                 mov     edx, [ecx]
+.text:3CD1D096                 mov     edx, [edx+28h]
+.text:3CD1D099                 lea     eax, [edi+ebx]
+.text:3CD1D09C                 push    eax
+*/
+	REBASE(bnetlib, send_message_entry, 0x3CD1D094, 0x3C910000)
+	REBASE(bnetlib, send_message_return, 0x3CD1D09C, 0x3C910000)
+}
+
 
 char* D3__std__string_to_char(unsigned int astr) 
 {
@@ -111,6 +155,7 @@ void __stdcall print_send_header(int eax, int edi) {
        LDebugString(str);
    }	
 }
+
 void __stdcall print_recv_header(int eax, int edi) {
 	try {
 	char buf[200];
@@ -123,15 +168,21 @@ void __stdcall print_recv_header(int eax, int edi) {
        LDebugString(str);
    }	
 }
+
+void __fastcall D3__std__String(int ecx) {
+	*(unsigned int*)(ecx+0x4) = 0x00;
+	*(unsigned int*)(ecx+0x14) = 0x0;
+	*(unsigned int*)(ecx+0x18) = 0x0f;
+}
+	
 void __stdcall print_msg(int message)
 {
 	asm("		sub		$0x50, %esp\n\t");
 
 	//alloc std::string
-	asm("		lea		-0x30(%ebp), %ecx\n\t"
-		"		movl	$0, 4(%ecx)\n\t");
-	asm("		mov		%0, %%eax\n\t" : : "m"(D3__std__String));
-	asm("		call	*(%eax)\n\t");
+	asm("		lea		-0x30(%ebp), %ecx\n\t");
+	asm("		mov		%0, %%eax\n\t" : : "i"(D3__std__String));
+	asm("		call	*%eax\n\t");
 	
 	//print messagetype
 	asm("		movl	0x08(%ebp), %ecx\n\t");
@@ -169,6 +220,12 @@ void __stdcall print_msg(int message)
 	asm("       call    *%eax\n\t");
 
 	asm("		1:\n\t"); //label to end
+
+	//clean std::string
+	asm("		lea		-0x30(%ebp), %ecx\n\t");
+	asm("		mov		%0, %%eax\n\t" : : "m"(D3__std__String_delete));
+	asm("		call	*(%eax)\n\t");
+	
 	asm("		add		$0x50, %esp\n\t");
 }
 
@@ -214,7 +271,7 @@ void func1()
 		"		pop 	%eax\n\t" //param
 		"		pop 	%eax\n\t");
 
-	asm("		push	%0\n\t" : : "m"(hook_return));
+	asm("		push	%0\n\t" : : "m"(message_parse_return));
 	asm("		ret		\n\t");
 }
 
@@ -228,17 +285,19 @@ void __stdcall outputhook_(int message) {
 	}
 }
 
-void outputhook()
+
+
+void send_message_hook()
 {
 	asm(
 		"	pop     %ebp\n\t"
-		"	mov     -0x1c(%ebp),%eax\n\t"
 		"	mov     (%ecx), %edx\n\t"
 		"	mov     0x28(%edx), %edx\n\t"
+		"	lea    	(%edi, %ebx), %eax\n\t"
 	);
 	asm("	pusha\n\t");
 	asm("	push	%edi\n\t");
-	asm("	push	%eax\n\t");
+	asm("	push	%ebx\n\t");
 	asm("	mov		%0, %%eax\n\t" : : "i"(print_send_header));
 	asm("	call    *%eax\n\t");
 	asm("	popa\n\t");
@@ -247,16 +306,17 @@ void outputhook()
 	asm("	mov		%0, %%eax\n\t" : : "i"(print_msg));
 	asm("	call    *%eax\n\t");
 	asm("	popa\n\t");
-	asm("	push	%0\n\t" : : "m"(outputhook_return));
+	asm("	push	%0\n\t" : : "m"(send_message_return));
 	asm("	ret		\n\t");
 }
 
-void outputhead() {
+void recvheader_hook() {
 	asm("	pop %ebp\n\t");
 	
 	asm("	pusha\n\t");
 	asm("	test	%eax, %eax\n\t");
 	asm("	jz 1f\n\t");
+
 	asm("	push	%edi\n\t");
 	asm("	push	%eax\n\t");
 	asm("	mov		%0, %%eax\n\t" : : "i"(print_recv_header));
@@ -264,10 +324,11 @@ void outputhead() {
 	asm("	1:\n\t");
 	asm("	popa\n\t");
 	
- asm (" mov     -0x2C4(%ebp), %cl");
- asm (" movzx   -0x2BC(%ebp), %ebx");
- asm ("	push	%0\n\t" : : "m"(outputhead_return));
- asm ("	ret		\n\t");
+
+	asm (" mov     -0x2C4(%ebp), %cl");
+	asm (" movzx   -0x2BC(%ebp), %ebx");
+	asm ("	push	%0\n\t" : : "m"(recvheader_return));
+	asm ("	ret		\n\t");
 }
 
 unsigned int __stdcall wrap_getname(unsigned int f)
@@ -324,20 +385,20 @@ void hookAddr( unsigned int address,	unsigned int calladdr)
 void TryHook() {
 	HINSTANCE__* hlib = GetModuleHandle("battle.net.dll");
 	if (hlib != 0) {
-		if (IsBadReadPtr((void*)((unsigned int)hlib + 0x3CD0362C - 0x3C910000),4)) {
+		RebaseFunctions();
+
+		if (IsBadReadPtr((void*)message_parse_hook,4)) {
 			LDebugString("TryHook: bad read ptr?");
 			return;
 		}
-		if (*(unsigned int*)((unsigned int)hlib + 0x3CD0362C - 0x3C910000) ==  (unsigned int)&outputhead) {
+		if (*(unsigned int*)message_parse_hook ==  (unsigned int)&func1) {
 			LDebugString("Lib seems already hooked.");
 			return;
 		}
-		RebaseFunctions();
 		
-		hookPushRet((unsigned int)hlib + 0x3CD0362C - 0x3C910000, (unsigned int)&outputhead);
-
-		hookPushRet((unsigned int)hlib + 0x3CAD888C - 0x3C910000, (unsigned int)&func1);
-		hookPushRet((unsigned int)hlib + 0x3CD1C1CC - 0x3C910000, (unsigned int)&outputhook);
+		hookPushRet(message_parse_hook, (unsigned int)&func1);
+		hookPushRet(recvheader_entry, (unsigned int)&recvheader_hook);
+		hookPushRet(send_message_entry, (unsigned int)&send_message_hook);
 
 		LDebugString("Lib Should be hooked");
 	} else {
@@ -403,9 +464,6 @@ DllMain (HANDLE hDll, DWORD dwReason, LPVOID lpReserved)
     {
         case DLL_PROCESS_ATTACH:
             // Code to run when the DLL is loaded
-			#ifdef EASYINJECTION
-				StartDll(0);
-			#endif
             break;
 
         case DLL_PROCESS_DETACH:
