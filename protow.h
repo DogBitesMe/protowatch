@@ -1,1 +1,1 @@
-#ifndef MINGW_DLL_H__#define MINGW_DLL_H__int __declspec(dllexport) __stdcall StartDll(int param);int __stdcall check_ignore_msg(unsigned int msg);void __stdcall lol_OutputDebugString(unsigned int msg);#endif
+#ifndef MINGW_DLL_H__#define MINGW_DLL_H__int __declspec(dllexport) __stdcall StartDll(int param);int __stdcall check_ignore_msg(unsigned int msg);void __stdcall lol_OutputDebugString(unsigned int msg);#endif
