@@ -36,12 +36,11 @@ unsigned int send_message_entry = 0;
 unsigned int send_message_return = 0;
 unsigned int message_parse_hook = 0;
 unsigned int message_parse_return = 0;
-
+unsigned int deserialize_message = 0;
 
 #define REBASE(lib, var, addr, oldbase) var = lib + addr - oldbase;
 
-/*
-0.3
+/* 0.3
 void RebaseFunctions()
 {
 	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
@@ -65,8 +64,7 @@ void RebaseFunctions()
 }
 */
 
-/* 
-0.3.4774
+/* 0.3.4774
 void RebaseFunctions()
 {
 	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
@@ -96,6 +94,7 @@ void RebaseFunctions()
 }
 */
 
+/* v 0.3.7728
 void RebaseFunctions()
 {
 	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
@@ -147,7 +146,69 @@ void RebaseFunctions()
 	REBASE(bnetlib, send_message_entry, 0x3CD4EE90, 0x3C910000)
 	REBASE(bnetlib, send_message_return, 0x3CD4EE96, 0x3C910000)
 }
+*/
+	
 
+/* v 0.4.7841 */
+void RebaseFunctions()
+{
+	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
+//	REBASE(bnetlib, D3__std__String, 0x3CE4B258, 0x3C910000)
+	REBASE(bnetlib, D3__std__String_delete, 0x3CED4618, 0x3C910000)
+	
+	REBASE(bnetlib, D3__TextFormat__PrintToString, 0x3cc16700, 0x3C910000)
+	REBASE(bnetlib, D3__Message__GetDescriptor, 0x3CBB3FF0,    0x3C910000)
+	REBASE(bnetlib, D3__Descriptor__full_name, 0x3CBB0E90, 0x3C910000) 
+	
+//.text:3CBA121C        >>>         mov     edx, [eax+10h]
+//.text:3CBA121F                 call    edx
+//.text:3CBA1221                 movzx   eax, al
+//.text:3CBA1224        <<<         test    eax, eax
+
+
+	REBASE(bnetlib, message_parse_hook, 0x3CBA121C, 0x3C910000)
+	REBASE(bnetlib, message_parse_return, 0x3CBA1224, 0x3C910000)
+	
+//.text:3CD045BC                 mov     cl, [ebp-2C4h]
+//.text:3CD045C2                 movzx   ebx, word ptr [ebp-2BCh]
+//.text:3CD045C9                 cmp     cl, 0FEh
+
+//.text:3CD354CE                 mov     cl, [ebp-2FCh]
+//.text:3CD354D4                 movzx   ebx, word ptr [ebp-2F4h]
+//.text:3CD354DB                 cmp     cl, 0FEh
+
+
+//.text:3CBA14B4                 call    deserialize_message
+//.text:3CBA14B9                 add     esp, 8
+//.text:3CBA14BC                 movzx   ecx, al
+
+
+	REBASE(bnetlib, deserialize_message, 0x3CBA12F0, 0x3C910000)
+	REBASE(bnetlib, recvheader_entry, 0x3CBA14B4, 0x3C910000)
+	REBASE(bnetlib, recvheader_return, 0x3CBA14BC, 0x3C910000)
+		
+//.text:3CD1D094                 mov     edx, [ecx]
+//.text:3CD1D096                 mov     edx, [edx+28h]
+//.text:3CD1D099                 lea     eax, [edi+ebx]
+//.text:3CD1D09C                 push    eax
+
+//.text:3CD4DBBE                 mov     eax, [edx+28h]
+//.text:3CD4DBC1                 mov     ecx, esi
+//.text:3CD4DBC3                 call    eax
+//.text:3CD4DBC5                 pop     edi
+
+	REBASE(bnetlib, sendheader_entry, 0x3CD4DBBE, 0x3C910000)
+	REBASE(bnetlib, sendheader_return, 0x3CD4DBC5, 0x3C910000)
+	
+//.text:3CD4EE90                 lea     ecx, [edi+ebx]
+//.text:3CD4EE93                 push    ecx
+//.text:3CD4EE94                 mov     ecx, eax
+//.text:3CD4EE96                 call    edx
+	
+	REBASE(bnetlib, send_message_entry, 0x3CD4EE90, 0x3C910000)
+	REBASE(bnetlib, send_message_return, 0x3CD4EE96, 0x3C910000)
+}
+	
 char* D3__std__string_to_char(unsigned int astr) 
 {
 	if (*(int *)(astr + 0x18) > 0x0f) {
@@ -156,6 +217,27 @@ char* D3__std__string_to_char(unsigned int astr)
 		return (char *)(astr + 4);
 	
 	}
+}
+
+void __fastcall D3__std__String(int ecx) {
+	*(unsigned int*)(ecx+0x4) = 0x00;
+	*(unsigned int*)(ecx+0x14) = 0x0;
+	*(unsigned int*)(ecx+0x18) = 0x0f;
+}
+
+int new_std_string() {
+	int res = (int)malloc(0x30);
+	D3__std__String(res);
+	return res;
+}
+
+void delete_std_string(int res) {
+	asm("		pusha\n\t");
+	asm("		mov		0x08(%ebp), %ecx\n\t");
+	asm("		mov		%0, %%eax\n\t" : : "m"(D3__std__String_delete));
+	asm("		call	*(%eax)\n\t");
+	asm("		popa\n\t");
+	free((void*)res);
 }
 
 void __stdcall LDebugString(const char* stringptr) 
@@ -197,38 +279,46 @@ void hexdump(char* data, int size, char * outbuf, int osize) {
 	}
 }
 
-void __stdcall print_send_header(int eax, int edi) {
-	try {
-		char buf[200];
-		char hexout[200];
-		hexdump((char*)edi, eax, hexout, sizeof(hexout));
-		snprintf(buf, sizeof(buf)-1, "[ Send %s ]", hexout);
-		LDebugString(buf);
-	}
-	catch( char *str )    {
-       LDebugString(str);
-   }	
+void __stdcall print_msg_to_str(int message, int resstr) {
+	asm("		pusha\n\t");
+	asm("		movl	0x0c(%ebp), %ecx\n\t"
+		"		push	%ecx\n\t"
+		"		movl	0x08(%ebp), %eax\n\t"
+		"		push	%eax\n\t");
+	asm("		movl	%0, %%eax\n\t" : : "m"(D3__TextFormat__PrintToString));
+	asm("		movl	$0, %ecx\n\t"
+		"		call	*%eax\n\t"
+        "       add		$8, %esp\n\t"
+		);
+	asm("		popa\n\t");
 }
 
-void __stdcall print_recv_header(int eax, int edi) {
-	try {
+void __stdcall print_recv_header(int header_message) {
 	char buf[200];
 	char hexout[200];
-	hexdump((char*)edi, eax, hexout, sizeof(hexout));
-	snprintf(buf, sizeof(buf)-1, "[ Recv %s ] ", hexout);
+	//hexdump((char*)edi, eax, hexout, sizeof(hexout));
+	int msg_str = new_std_string();
+	print_msg_to_str(header_message, msg_str);
+	snprintf(buf, sizeof(buf)-1, "[ Recv ] ");
 	LDebugString(buf);
+	char *message = D3__std__string_to_char(msg_str);
+	for (int i=0; message[i] != 0; i++) {
+		if ((message[i] == 10) | (message[i] == 13)) {
+			message[i] = 32;
+		}
 	}
-	catch( char *str )    {
-       LDebugString(str);
-   }	
+	LDebugString(message);
+	delete_std_string(msg_str);
 }
 
-void __fastcall D3__std__String(int ecx) {
-	*(unsigned int*)(ecx+0x4) = 0x00;
-	*(unsigned int*)(ecx+0x14) = 0x0;
-	*(unsigned int*)(ecx+0x18) = 0x0f;
+void __stdcall print_send_header(int eax, int edi) {
+	char buf[200];
+	char hexout[200];
+	//hexdump((char*)edi, eax, hexout, sizeof(hexout));
+	snprintf(buf, sizeof(buf)-1, "[ Send ]");
+	LDebugString(buf);
 }
-	
+
 void __stdcall print_msg(int message)
 {
 	asm("		sub		$0x50, %esp\n\t");
@@ -294,7 +384,7 @@ void func1()
 
 		"		push    %eax\n\t"
 
-		"		push 	0x0c(%ebp)\n\t" //param to the previous function
+		"		push 	0x0c(%ebp)\n\t" //param to the hooked function
 		"		push	%ebp\n\t"
 		"		mov		%esp, %ebp\n\t"
 
@@ -328,17 +418,6 @@ void func1()
 	asm("		push	%0\n\t" : : "m"(message_parse_return));
 	asm("		ret		\n\t");
 }
-
-void __stdcall outputhook_(int message) {
-	try {
-		print_msg(message);
-	} 
-	catch(char*str) {
-		LDebugString("exception:");
-		LDebugString(str);
-	}
-}
-
 
 void sendheader_hook()
 {
@@ -395,23 +474,19 @@ void send_message_hook()
 
 void recvheader_hook() {
 	asm("	pop %ebp\n\t");
+
+//.text:3CBA14B4                 call    deserialize_message
+//.text:3CBA14B9                 add     esp, 8
+	asm("	mov		%0, %%eax\n\t" : : "m"(deserialize_message));
+	asm("	call    *%eax\n\t");
+	asm("	add		$8, %esp");
 	
 	asm("	pusha\n\t");
-	asm("	test	%eax, %eax\n\t");
-	asm("	jz 1f\n\t");
-
-	asm("	push	%ebx\n\t");
-	asm("	push	%eax\n\t");
+	asm("	mov		0x10(%ebp), %esi\n\t");
+	asm("	push	%esi\n\t");
 	asm("	mov		%0, %%eax\n\t" : : "i"(print_recv_header));
 	asm("	call    *%eax\n\t");
-	asm("	1:\n\t");
 	asm("	popa\n\t");
-	
-
-//.text:3CD354CE                 mov     cl, [ebp-2FCh]
-//.text:3CD354D4                 movzx   ebx, word ptr [ebp-2F4h]
-	asm (" mov     -0x2FC(%ebp), %cl");
-	asm (" movzx   -0x2F4(%ebp), %ebx");
 	
 	asm ("	push	%0\n\t" : : "m"(recvheader_return));
 	asm ("	ret		\n\t");
@@ -485,8 +560,8 @@ void TryHook() {
 		hookPushRet(recvheader_entry, (unsigned int)&recvheader_hook);
 		hookPushRet(message_parse_hook, (unsigned int)&func1);
 
-		hookPushRet(sendheader_entry, (unsigned int)&sendheader_hook);
-		hookPushRet(send_message_entry, (unsigned int)&send_message_hook);
+//		hookPushRet(sendheader_entry, (unsigned int)&sendheader_hook);
+//		hookPushRet(send_message_entry, (unsigned int)&send_message_hook);
 
 		LDebugString("Lib Should be hooked");
 	} else {
