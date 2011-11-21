@@ -34,6 +34,10 @@ unsigned int sendheader_entry = 0;
 unsigned int sendheader_return = 0;
 unsigned int send_message_entry = 0;
 unsigned int send_message_return = 0;
+unsigned int send_message_entry1 = 0;
+unsigned int send_message_return1 = 0;
+unsigned int send_message_entry2 = 0;
+unsigned int send_message_return2 = 0;
 unsigned int message_parse_hook = 0;
 unsigned int message_parse_return = 0;
 unsigned int deserialize_message = 0;
@@ -198,11 +202,6 @@ void RebaseFunctions()
 	REBASE(bnetlib, sendheader_entry, 0x3CD92D0E, 0x3C910000)
 	REBASE(bnetlib, sendheader_return, 0x3CD92D15, 0x3C910000)
 	
-//.text:3CD4EE90                 lea     ecx, [edi+ebx]
-//.text:3CD4EE93                 push    ecx
-//.text:3CD4EE94                 mov     ecx, eax
-//.text:3CD4EE96                 call    edx
-
 //.text:3CD93FE0                 lea     ecx, [edi+ebx]
 //.text:3CD93FE3                 push    ecx
 //.text:3CD93FE4                 mov     ecx, eax
@@ -210,6 +209,22 @@ void RebaseFunctions()
 	
 	REBASE(bnetlib, send_message_entry, 0x3CD93FE0, 0x3C910000)
 	REBASE(bnetlib, send_message_return, 0x3CD93FE6, 0x3C910000)
+
+//.text:3CD7A468                 mov     edx, [eax+28h]
+//.text:3CD7A46B                 add     ecx, ebx
+//.text:3CD7A46D                 push    ecx
+//.text:3CD7A46E                 mov     ecx, edi
+	
+	REBASE(bnetlib, send_message_entry1, 0x3CD7A468, 0x3C910000)
+	REBASE(bnetlib, send_message_return1, 0x3CD7A46E, 0x3C910000)
+	
+//.text:3CD8311C                 lea     ecx, [ebx+edi]
+//.text:3CD8311F                 push    ecx
+//.text:3CD83120                 mov     ecx, eax
+//.text:3CD83122                 call    edx
+	
+	REBASE(bnetlib, send_message_entry2, 0x3CD8311C, 0x3C910000)
+	REBASE(bnetlib, send_message_return2, 0x3CD83122, 0x3C910000)
 }
 	
 char* D3__std__string_to_char(unsigned int astr) 
@@ -468,11 +483,6 @@ void send_message_hook()
 	asm("	call    *%eax\n\t");
 	asm("	popa\n\t");
 
-//.text:3CD4EE90                 lea     ecx, [edi+ebx]
-//.text:3CD4EE93                 push    ecx
-//.text:3CD4EE94                 mov     ecx, eax
-//.text:3CD4EE96                 call    edx
-
 //.text:3CD93FE0                 lea     ecx, [edi+ebx]
 //.text:3CD93FE3                 push    ecx
 //.text:3CD93FE4                 mov     ecx, eax
@@ -485,6 +495,67 @@ void send_message_hook()
 		);
 		
 	asm("	push	%0\n\t" : : "m"(send_message_return));
+	asm("	ret		\n\t");
+}
+
+void send_message_hook1()
+{
+	asm(
+		"	pop     %ebp\n\t"
+	);
+
+	asm("	pusha\n\t");
+	asm("	push	%edi\n\t");
+	asm("	mov		%0, %%eax\n\t" : : "i"(print_msg));
+	asm("	call    *%eax\n\t");
+	asm("	popa\n\t");
+
+//.text:3CD7A468                 mov     edx, [eax+28h]
+//.text:3CD7A46B                 add     ecx, ebx
+//.text:3CD7A46D                 push    ecx
+//.text:3CD7A46E                 mov     ecx, edi
+
+
+	asm("	mov     0x28(%eax), %edx\n\t"
+		"	add		%ebx, %ecx\n\t"
+		"	push	%ecx\n\t"
+		);
+		
+	asm("	push	%0\n\t" : : "m"(send_message_return1));
+	asm("	ret		\n\t");
+}
+
+char nsend_message_hook2[] = "send_message_hook2\0";
+
+void send_message_hook2()
+{
+	asm(
+		"	pop     %ebp\n\t"
+	);
+
+	asm("	pusha\n\t");
+	asm("	push	%eax\n\t");
+	asm("	mov		%0, %%eax\n\t" : : "i"(print_msg));
+	asm("	call    *%eax\n\t");
+
+	asm("	mov		%0, %%eax\n\t" : : "i"(nsend_message_hook2));
+	asm("	push	%eax\n\t");
+	asm("	mov		%0, %%eax\n\t" : : "i"(LDebugString));
+	asm("	call    *%eax\n\t");
+
+	asm("	popa\n\t");
+
+//.text:3CD4EE90                 lea     ecx, [edi+ebx]
+//.text:3CD4EE93                 push    ecx
+//.text:3CD4EE94                 mov     ecx, eax
+//.text:3CD4EE96                 call    edx
+
+	asm("	lea     (%edi, %ebx), %ecx\n\t"
+		"	push	%ecx\n\t"
+		"	mov     %eax, %ecx\n\t"
+		);
+
+	asm("	push	%0\n\t" : : "m"(send_message_return2));
 	asm("	ret		\n\t");
 }
 
@@ -578,6 +649,8 @@ void TryHook() {
 
 		hookPushRet(sendheader_entry, (unsigned int)&sendheader_hook);
 		hookPushRet(send_message_entry, (unsigned int)&send_message_hook);
+		hookPushRet(send_message_entry1, (unsigned int)&send_message_hook1);
+		hookPushRet(send_message_entry2, (unsigned int)&send_message_hook2);
 
 		LDebugString("Lib Should be hooked");
 	} else {
