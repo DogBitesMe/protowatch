@@ -326,7 +326,81 @@ void RebaseFunctions()
 }
 */
 	
-/* v 0.6.0.8296 */	
+/* v 0.6.0.8296 	
+void RebaseFunctions()
+{
+	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
+//	REBASE(bnetlib, D3__std__String, 0x3CE4B258, 0x3C910000)
+	//3CED4618
+	REBASE(bnetlib, D3__std__String_delete, 0x3CECA62C, 0x3C910000)
+	
+	REBASE(bnetlib, D3__TextFormat__PrintToString, 0x3CB8BBB0, 0x3C910000)
+	REBASE(bnetlib, D3__Message__GetDescriptor, 0x3CB8C230,    0x3C910000)
+	REBASE(bnetlib, D3__Descriptor__full_name, 0x3CB8C630, 0x3C910000) 
+	
+	REBASE(bnetlib, deserialize_message, 0x3CBA8010, 0x3C910000)
+
+//UPDATED
+//.text:3CB9C0EC        >>>         mov     edx, [eax+10h]
+//.text:3CB9C0EF                 call    edx
+//.text:3CB9C0F1                 movzx   eax, al
+//.text:3CB9C0F4        <<<         test    eax, eax
+
+//.text:3CBA7F3C                 mov     edx, [eax+10h]
+//.text:3CBA7F3F                 call    edx
+//.text:3CBA7F41                 movzx   eax, al
+//.text:3CBA7F44                 test    eax, eax
+
+	REBASE(bnetlib, message_parse_hook, 0x3CBA7F3C, 0x3C910000)
+	REBASE(bnetlib, message_parse_return, 0x3CBA7F44, 0x3C910000)
+
+//UPDATED
+//.text:3CBA81D4                 call    deserialize_message
+//.text:3CBA81D9                 add     esp, 8
+//.text:3CBA81DC                 movzx   ecx, al
+
+	REBASE(bnetlib, recvheader_entry, 0x3CBA81D4, 0x3C910000)
+	REBASE(bnetlib, recvheader_return, 0x3CBA81DC, 0x3C910000)
+
+//UPDATED	
+//.text:3CD96E9E                 mov     eax, [edx+28h]
+//.text:3CD96EA1                 mov     ecx, esi
+//.text:3CD96EA3                 call    eax
+//.text:3CD96EA5                 pop     edi
+
+	REBASE(bnetlib, sendheader_entry, 0x3CD96E9E, 0x3C910000)
+	REBASE(bnetlib, sendheader_return, 0x3CD96EA5, 0x3C910000)
+	
+//updated
+//.text:3CD981CB                 lea     ecx, [edi+ebx]
+//.text:3CD981CE                 push    ecx
+//.text:3CD981CF                 mov     ecx, eax
+//.text:3CD981D1                 call    edx
+
+	REBASE(bnetlib, send_message_entry, 0x3CD981CB, 0x3C910000)
+	REBASE(bnetlib, send_message_return, 0x3CD981D1, 0x3C910000)
+
+//updated	
+//.text:3CD5F539                 mov     edx, [eax+28h]
+//.text:3CD5F53C                 add     ecx, ebx
+//.text:3CD5F53E                 push    ecx
+//.text:3CD5F53F                 mov     ecx, edi
+
+	REBASE(bnetlib, send_message_entry1, 0x3CD5F539, 0x3C910000)
+	REBASE(bnetlib, send_message_return1, 0x3CD5F53F, 0x3C910000)
+	
+//updated
+//.text:3CD87453                 lea     ecx, [ebx+edi]
+//.text:3CD87456                 push    ecx
+//.text:3CD87457                 mov     ecx, eax
+//.text:3CD87459                 call    edx
+	
+	REBASE(bnetlib, send_message_entry2, 0x3CD87453, 0x3C910000)
+	REBASE(bnetlib, send_message_return2, 0x3CD87459, 0x3C910000)
+}
+*/
+
+/* v 0.6.0.8392 */
 void RebaseFunctions()
 {
 	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
