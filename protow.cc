@@ -474,7 +474,7 @@ void RebaseFunctions()
 }
 */
 
-/* v 0.6.0.8610 */
+/* v 0.6.0.8610 
 void RebaseFunctions()
 {
 	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
@@ -564,6 +564,123 @@ void RebaseFunctions()
 
 	REBASE(bnetlib, send_message_entry2, 0x3CD6B74D, 0x3C910000)
 	REBASE(bnetlib, send_message_return2, 0x3CD6B753, 0x3C910000)
+}
+*/
+
+/* v 0.8.0.8815 */
+void RebaseFunctions()
+{
+	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
+//	REBASE(bnetlib, D3__std__String, 0x3CE4B258, 0x3C910000)
+	//3CED4618
+	REBASE(bnetlib, D3__std__String_delete, 0x3CEB2688, 0x3C910000) 
+	
+	REBASE(bnetlib, D3__TextFormat__PrintToString, 0x3CB86570, 0x3C910000)
+	REBASE(bnetlib, D3__Message__GetDescriptor, 0x3CB86BF0,    0x3C910000)
+	REBASE(bnetlib, D3__Descriptor__full_name, 0x3CB86FF0, 0x3C910000) 
+	
+	REBASE(bnetlib, deserialize_message, 0x3CBA2A30, 0x3C910000)
+
+//UPDATED
+//.text:3CBA7F3C                 mov     edx, [eax+10h]
+//.text:3CBA7F3F                 call    edx
+//.text:3CBA7F41                 movzx   eax, al
+//.text:3CBA7F44                 test    eax, eax
+
+//.text:3CBA27DC                 mov     edx, [eax+10h]
+//.text:3CBA27DF                 call    edx
+//.text:3CBA27E1                 movzx   eax, al
+//.text:3CBA27E4                 test    eax, eax
+
+//.text:3CBA295C                 mov     edx, [eax+10h]
+//.text:3CBA295F                 call    edx
+//.text:3CBA2961                 movzx   eax, al
+//.text:3CBA2964                 test    eax, eax
+
+	REBASE(bnetlib, message_parse_hook, 0x3CBA295C, 0x3C910000)
+	REBASE(bnetlib, message_parse_return, 0x3CBA2964, 0x3C910000)
+
+//UPDATED
+//.text:3CBA81D4                 call    deserialize_message
+//.text:3CBA81D9                 add     esp, 8
+//.text:3CBA81DC                 movzx   ecx, al
+
+//.text:3CBA2A74                 call    deserialize_message
+//.text:3CBA2A79                 add     esp, 8
+//.text:3CBA2A7C                 movzx   ecx, al
+
+//.text:3CBA2BF4                 call    D3__DeserializeMessage
+//.text:3CBA2BF9                 add     esp, 8
+//.text:3CBA2BFC                 movzx   ecx, al
+
+	REBASE(bnetlib, recvheader_entry, 0x3CBA2BF4, 0x3C910000)
+	REBASE(bnetlib, recvheader_return, 0x3CBA2BFC, 0x3C910000)
+
+//UPDATED	
+//.text:3CD96E9E                 mov     eax, [edx+28h]
+//.text:3CD96EA1                 mov     ecx, esi
+//.text:3CD96EA3                 call    eax
+//.text:3CD96EA5                 pop     edi
+
+//.text:3CD7B74E                 mov     eax, [edx+28h]
+//.text:3CD7B751                 mov     ecx, esi
+//.text:3CD7B753                 call    eax
+//.text:3CD7B755                 pop     edi
+
+//.text:3CD7BBFE                 mov     eax, [edx+28h]
+//.text:3CD7BC01                 mov     ecx, esi
+//.text:3CD7BC03                 call    eax
+//.text:3CD7BC05                 pop     edi
+
+	REBASE(bnetlib, sendheader_entry, 0x3CD7BBFE, 0x3C910000)
+	REBASE(bnetlib, sendheader_return, 0x3CD7BC05, 0x3C910000)
+	
+//updated
+//.text:3CD981CB                 lea     ecx, [edi+ebx]
+//.text:3CD981CE                 push    ecx
+//.text:3CD981CF                 mov     ecx, eax
+//.text:3CD981D1                 call    edx
+
+//.text:3CD7CA7C                 lea     ecx, [edi+ebx]
+//.text:3CD7CA7F                 push    ecx
+//.text:3CD7CA80                 mov     ecx, eax
+//.text:3CD7CA82                 call    edx
+
+//.text:3CD7CF3C                 lea     ecx, [edi+ebx]
+//.text:3CD7CF3F                 push    ecx
+//.text:3CD7CF40                 mov     ecx, eax
+//.text:3CD7CF42                 call    edx
+
+	REBASE(bnetlib, send_message_entry, 0x3CD7CF3C, 0x3C910000)
+	REBASE(bnetlib, send_message_return, 0x3CD7CF42, 0x3C910000)
+
+//not found?
+//.text:3CD5F539                 mov     edx, [eax+28h]
+//.text:3CD5F53C                 add     ecx, ebx
+//.text:3CD5F53E                 push    ecx
+//.text:3CD5F53F                 mov     ecx, edi
+
+	REBASE(bnetlib, send_message_entry1, 0x3CD5F539, 0x3C910000)
+	REBASE(bnetlib, send_message_return1, 0x3CD5F53F, 0x3C910000)
+	
+//updated
+//.text:3CD87453                 lea     ecx, [ebx+edi]
+//.text:3CD87456                 push    ecx
+//.text:3CD87457                 mov     ecx, eax
+//.text:3CD87459                 call    edx
+
+//.text:3CD6B74D                 lea     ecx, [ebx+edi]
+//.text:3CD6B750                 push    ecx
+//.text:3CD6B751                 mov     ecx, eax
+//.text:3CD6B753                 call    edx
+
+//.text:3CD6BBEA                 lea     ecx, [ebx+edi]
+//.text:3CD6BBED                 push    ecx
+//.text:3CD6BBEE                 mov     ecx, eax
+//.text:3CD6BBF0                 call    edx
+
+	REBASE(bnetlib, send_message_entry2, 0x3CD6BBEA, 0x3C910000)
+	REBASE(bnetlib, send_message_return2, 0x3CD6BBF0, 0x3C910000)
 }
 
 char* D3__std__string_to_char(unsigned int astr) 
