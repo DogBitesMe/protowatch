@@ -573,13 +573,13 @@ void RebaseFunctions()
 	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
 //	REBASE(bnetlib, D3__std__String, 0x3CE4B258, 0x3C910000)
 	//3CED4618
-	REBASE(bnetlib, D3__std__String_delete, 0x3CEB2688, 0x3C910000) 
+	REBASE(bnetlib, D3__std__String_delete, 0x3CE8669C, 0x3C910000) 
 	
-	REBASE(bnetlib, D3__TextFormat__PrintToString, 0x3CB86570, 0x3C910000)
+	REBASE(bnetlib, D3__TextFormat__PrintToString, 0x3CB68FB0, 0x3C910000)
 	REBASE(bnetlib, D3__Message__GetDescriptor, 0x3CB86BF0,    0x3C910000)
-	REBASE(bnetlib, D3__Descriptor__full_name, 0x3CB86FF0, 0x3C910000) 
+	REBASE(bnetlib, D3__Descriptor__full_name, 0x3CB69A30, 0x3C910000) 
 	
-	REBASE(bnetlib, deserialize_message, 0x3CBA2A30, 0x3C910000)
+	REBASE(bnetlib, deserialize_message, 0x3CB85480, 0x3C910000)
 
 //.text:3CBA27DC                 mov     edx, [eax+10h]
 //.text:3CBA27DF                 call    edx
