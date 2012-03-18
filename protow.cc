@@ -567,7 +567,7 @@ void RebaseFunctions()
 }
 */
 
-/* v 0.8.0.8815 */
+/* v 0.8.0.8860 */
 void RebaseFunctions()
 {
 	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
@@ -576,7 +576,7 @@ void RebaseFunctions()
 	REBASE(bnetlib, D3__std__String_delete, 0x3CE8669C, 0x3C910000) 
 	
 	REBASE(bnetlib, D3__TextFormat__PrintToString, 0x3CB68FB0, 0x3C910000)
-	REBASE(bnetlib, D3__Message__GetDescriptor, 0x3CB86BF0,    0x3C910000)
+	REBASE(bnetlib, D3__Message__GetDescriptor, 0x3CB69630,    0x3C910000)
 	REBASE(bnetlib, D3__Descriptor__full_name, 0x3CB69A30, 0x3C910000) 
 	
 	REBASE(bnetlib, deserialize_message, 0x3CB85480, 0x3C910000)
