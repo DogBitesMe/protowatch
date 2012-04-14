@@ -729,8 +729,13 @@ void RebaseFunctions()
 //.text:3CB911FC                 movzx   ecx, al
 //.text:3CB911FF                 test    ecx, ecx
 
-	REBASE(bnetlib, recvheader_entry, 0x3CB911F4, 0x3C910000)
-	REBASE(bnetlib, recvheader_return, 0x3CB911FC, 0x3C910000)
+//.text:3CD7077D                 mov     eax, [edi]
+//.text:3CD7077F                 mov     edx, [eax+10h]
+//.text:3CD70782                 mov     ecx, edi
+//.text:3CD70784                 call    edx
+
+	REBASE(bnetlib, recvheader_entry, 0x3CD7077D, 0x3C910000)
+	REBASE(bnetlib, recvheader_return, 0x3CD70784, 0x3C910000)
 
 //.text:3CD7BBFE                 mov     eax, [edx+28h]
 //.text:3CD7BC01                 mov     ecx, esi
@@ -1152,18 +1157,22 @@ void send_message_hook2()
 void recvheader_hook() {
 	asm("	pop %ebp\n\t");
 
-//.text:3CBA14B4                 call    deserialize_message
-//.text:3CBA14B9                 add     esp, 8
-	asm("	mov		%0, %%eax\n\t" : : "m"(deserialize_message));
-	asm("	call    *%eax\n\t");
-	asm("	add		$8, %esp");
-	
+//.text:3CD7077D                 mov     eax, [edi]
+//.text:3CD7077F                 mov     edx, [eax+10h]
+//.text:3CD70782                 mov     ecx, edi
+
+	asm("	mov		(%edi), %eax\n\t");
+	asm("	mov		0x10(%eax), %edx\n\t");
+	asm("	mov		%edi, %ecx\n\t");
+
 	asm("	pusha\n\t");
-	asm("	mov		0x10(%ebp), %esi\n\t");
-	asm("	push	%esi\n\t");
+	asm("	push	%ecx\n\t");
 	asm("	mov		%0, %%eax\n\t" : : "i"(print_recv_header));
 	asm("	call    *%eax\n\t");
 	asm("	popa\n\t");
+
+//.text:3CD70784                 call    edx
+	asm("	call    *%edx\n\t");
 	
 	asm ("	push	%0\n\t" : : "m"(recvheader_return));
 	asm ("	ret		\n\t");
