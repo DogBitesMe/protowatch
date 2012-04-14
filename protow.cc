@@ -730,7 +730,7 @@ void RebaseFunctions()
 //.text:3CB911FF                 test    ecx, ecx
 
 	REBASE(bnetlib, recvheader_entry, 0x3CB911F4, 0x3C910000)
-	REBASE(bnetlib, recvheader_return, 0x3CB911FF, 0x3C910000)
+	REBASE(bnetlib, recvheader_return, 0x3CB911FC, 0x3C910000)
 
 //.text:3CD7BBFE                 mov     eax, [edx+28h]
 //.text:3CD7BC01                 mov     ecx, esi
