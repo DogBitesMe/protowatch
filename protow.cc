@@ -23,6 +23,14 @@ void __stdcall func3() {
 	TlsSetValue(tlsIndex, (void*)((int)TlsGetValue(tlsIndex) - 1));
 }
 
+int __stdcall mytls_get() {
+	return (int)TlsGetValue(tlsIndex);
+}
+
+void __stdcall mytls_set(int a) {
+	TlsSetValue(tlsIndex, (void*)a);
+}
+
 
 //unsigned int D3__std__String = 0x3CE4A528;
 unsigned int D3__std__String_delete = 0; 
@@ -30,8 +38,17 @@ unsigned int D3__TextFormat__PrintToString = 0;
 unsigned int D3__Descriptor__full_name = 0;
 unsigned int D3__Message__GetDescriptor = 0;
 
+unsigned int deserialize_message = 0;
+unsigned int bnet_protobuf_parse = 0;
+
 unsigned int recvheader_entry = 0;
 unsigned int recvheader_return = 0;
+
+unsigned int recvmessage_entry = 0;
+unsigned int recvmessage_return = 0;
+unsigned int recvmessage1_entry = 0;
+unsigned int recvmessage1_return = 0;
+
 unsigned int sendheader_entry = 0;
 unsigned int sendheader_return = 0;
 unsigned int send_message_entry = 0;
@@ -40,9 +57,13 @@ unsigned int send_message_entry1 = 0;
 unsigned int send_message_return1 = 0;
 unsigned int send_message_entry2 = 0;
 unsigned int send_message_return2 = 0;
-unsigned int message_parse_hook = 0;
-unsigned int message_parse_return = 0;
-unsigned int deserialize_message = 0;
+
+unsigned int sub_3CB90530 = 0;
+
+
+//defunc
+//unsigned int message_parse_hook = 0;
+//unsigned int message_parse_return = 0;
 
 #define REBASE(lib, var, addr, oldbase) var = lib + addr - oldbase;
 
@@ -698,23 +719,36 @@ void RebaseFunctions()
 	
 	REBASE(bnetlib, deserialize_message, 0x3CB91000, 0x3C910000)
 
-//.text:3CBA295C                 mov     edx, [eax+10h]
-//.text:3CBA295F                 call    edx
-//.text:3CBA2961                 movzx   eax, al
-//.text:3CBA2964                 test    eax, eax
+	REBASE(bnetlib, bnet_protobuf_parse, 0x3CB90560, 0x3C910000)
 
-//.text:3CB853AC                 mov     edx, [eax+10h]
-//.text:3CB853AF                 call    edx
-//.text:3CB853B1                 movzx   eax, al
-//.text:3CB853B4                 test    eax, eax
+//.text:3CD5F618                 mov     ecx, edi
+//.text:3CD5F61A                 mov     byte ptr [ebp-4], 2
+//.text:3CD5F61E                 call    bnet_protobuf_parse
+//.text:3CD5F623                 test    al, al
+	
+	REBASE(bnetlib, recvmessage_entry, 0x3CD5F618, 0x3C910000)
+	REBASE(bnetlib, recvmessage_return, 0x3CD5F623, 0x3C910000)
 
-//.text:3CB90F5C                 mov     edx, [eax+10h]
-//.text:3CB90F5F                 call    edx
-//.text:3CB90F61                 movzx   eax, al
-//.text:3CB90F64                 test    eax, eax
 
-	REBASE(bnetlib, message_parse_hook, 0x3CB90F5C, 0x3C910000)
-	REBASE(bnetlib, message_parse_return, 0x3CB90F64, 0x3C910000)
+//hard to update.
+	REBASE(bnetlib, sub_3CB90530, 0x3CB90530, 0x3C910000)
+
+//depends on the message being at [ebp-214h]+0x70	
+//.text:3CD5419C mov     ecx, eax
+//.text:3CD5419E call    sub_3CD70930
+//.text:3CD541A3 test    al, al
+
+//.text:3CD7093F pop     esi
+//.text:3CD70940 pop     ebp
+//.text:3CD70941 jmp     sub_3CB90530
+
+//.text:3CD5F0D9 mov     edx, [ecx]
+//.text:3CD5F0DB mov     eax, [edx+10h]
+//.text:3CD5F0DE call    eax
+//.text:3CD5F0E0 test    al, al
+
+	REBASE(bnetlib, recvmessage1_entry, 0x3CD5F0D9, 0x3C910000)
+	REBASE(bnetlib, recvmessage1_return, 0x3CD5F0E0, 0x3C910000)
 
 //.text:3CBA2BF4                 call    D3__DeserializeMessage
 //.text:3CBA2BF9                 add     esp, 8
@@ -804,6 +838,26 @@ void RebaseFunctions()
 
 	REBASE(bnetlib, send_message_entry2, 0x3CD60109, 0x3C910000)
 	REBASE(bnetlib, send_message_return2, 0x3CD6010F, 0x3C910000)
+
+//defunc:
+
+//.text:3CBA295C                 mov     edx, [eax+10h]
+//.text:3CBA295F                 call    edx
+//.text:3CBA2961                 movzx   eax, al
+//.text:3CBA2964                 test    eax, eax
+
+//.text:3CB853AC                 mov     edx, [eax+10h]
+//.text:3CB853AF                 call    edx
+//.text:3CB853B1                 movzx   eax, al
+//.text:3CB853B4                 test    eax, eax
+
+//.text:3CB90F5C                 mov     edx, [eax+10h]
+//.text:3CB90F5F                 call    edx
+//.text:3CB90F61                 movzx   eax, al
+//.text:3CB90F64                 test    eax, eax
+
+//	REBASE(bnetlib, message_parse_hook, 0x3CB90F5C, 0x3C910000)
+//	REBASE(bnetlib, message_parse_return, 0x3CB90F64, 0x3C910000)
 }
 
 char* D3__std__string_to_char(unsigned int astr) 
@@ -978,6 +1032,7 @@ void __stdcall print_msg(int message)
 	asm("		add		$0x50, %esp\n\t");
 }
 
+/*
 void func1()
 {
     asm(
@@ -1023,6 +1078,7 @@ void func1()
 	asm("		push	%0\n\t" : : "m"(message_parse_return));
 	asm("		ret		\n\t");
 }
+*/
 
 void sendheader_hook()
 {
@@ -1154,6 +1210,74 @@ void send_message_hook2()
 	asm("	ret		\n\t");
 }
 
+void recvmessage_hook() {
+	asm("	pop %ebp\n\t");
+
+//.text:3CD5F662                 mov     eax, [edi]
+//.text:3CD5F664                 mov     edx, [eax+10h]
+//.text:3CD5F667                 mov     ecx, edi
+//.text:3CD5F669                 call    edx
+
+//.text:3CD5F618                 mov     ecx, edi
+//.text:3CD5F61A                 mov     byte ptr [ebp-4], 2
+//.text:3CD5F61E                 call    bnet_protobuf_parse
+
+	asm("	mov		%edi, %ecx\n\t");
+	asm("	movb		$2, -0x4(%ebp)\n\t");
+
+	asm("	mov		%0, %%eax\n\t" : : "m"(bnet_protobuf_parse));
+	asm("	call    *%eax\n\t");
+	
+	asm("	pusha\n\t");
+	asm("	push	%edi\n\t");
+	asm("	mov		%0, %%eax\n\t" : : "i"(c_print_msg));
+	asm("	call    *%eax\n\t");
+	asm("	popa\n\t");
+	
+	asm ("	push	%0\n\t" : : "m"(recvmessage_return));
+	asm ("	ret		\n\t");
+}
+
+void recvmessage1_hook() {
+	asm("	pop %ebp\n\t");
+
+//.text:3CD541F9 mov     ecx, [edi+70h]
+//.text:3CD541FC mov     edx, [ecx]
+//.text:3CD541FE mov     eax, [edx+3Ch]
+//.text:3CD54201 call    eax
+
+//.text:3CD5419C mov     ecx, eax
+//.text:3CD5419E call    sub_3CD70930
+//.text:3CD541A3 test    al, al
+
+//.text:3CD7093F pop     esi
+//.text:3CD70940 pop     ebp
+//.text:3CD70941 jmp     sub_3CB90530
+
+//.text:3CD5F0D9 mov     edx, [ecx]
+//.text:3CD5F0DB mov     eax, [edx+10h]
+//.text:3CD5F0DE call    eax
+//.text:3CD5F0E0 test    al, al
+
+	asm("	mov		(%ecx), %edx\n\t");
+	asm("	mov		0x10(%edx), %eax\n\t");
+
+	asm("	call    *%eax\n\t");
+	
+
+	asm("	pusha\n\t");
+	
+	asm("	mov		0x70(%esi), %ecx\n\t");
+	asm("	push	%ecx\n\t");
+	
+	asm("	mov		%0, %%eax\n\t" : : "i"(c_print_msg));
+	asm("	call    *%eax\n\t");
+	asm("	popa\n\t");
+
+	asm ("	push	%0\n\t" : : "m"(recvmessage1_return));
+	asm ("	ret		\n\t");
+}
+
 void recvheader_hook() {
 	asm("	pop %ebp\n\t");
 
@@ -1234,17 +1358,21 @@ void TryHook() {
 	if (hlib != 0) {
 		RebaseFunctions();
 
-		if (IsBadReadPtr((void*)message_parse_hook,4)) {
+		if (IsBadReadPtr((void*)recvmessage_entry,4)) {
 			LDebugString("TryHook: bad read ptr?");
 			return;
 		}
-		if (*(unsigned int*)message_parse_hook ==  (unsigned int)&func1) {
+		if (*(unsigned int*)recvmessage_entry ==  (unsigned int)&recvmessage_hook) {
 			LDebugString("Lib seems already hooked.");
 			return;
 		}
 		
 		hookPushRet(recvheader_entry, (unsigned int)&recvheader_hook);
-		hookPushRet(message_parse_hook, (unsigned int)&func1);
+		hookPushRet(recvmessage_entry, (unsigned int)&recvmessage_hook);
+		hookPushRet(recvmessage1_entry, (unsigned int)&recvmessage1_hook);
+		
+		
+		//hookPushRet(message_parse_hook, (unsigned int)&func1);
 
 		hookPushRet(sendheader_entry, (unsigned int)&sendheader_hook);
 		hookPushRet(send_message_entry, (unsigned int)&send_message_hook);
