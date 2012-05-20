@@ -861,7 +861,7 @@ void RebaseFunctions()
 }
 */
 
-/* v 0.10.0.9357 */
+/* v 0.10.0.9357 
 void RebaseFunctions()
 {
 	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
@@ -1037,8 +1037,250 @@ void RebaseFunctions()
 //.text:3CD600FC                 mov     ecx, eax
 //.text:3CD600FE                 call    edx
 
-	REBASE(bnetlib, send_message_entry2, 0x3CD600F8, 0x3C910000)
-	REBASE(bnetlib, send_message_return2, 0x3CD600FE, 0x3C910000)
+//.text:3CD6148C                 lea     ecx, [ebx+edi]
+//.text:3CD6148F                 push    ecx
+//.text:3CD61490                 mov     ecx, eax
+//.text:3CD61492                 call    edx
+
+//21 00 6D 00 5F 00 73 00 65 00 6E 00 64 00 46 00 75 00 74 00 75 00 72 00 65 00 00 00
+	REBASE(bnetlib, send_message_entry2, 0x3CD6148C, 0x3C910000)
+	REBASE(bnetlib, send_message_return2, 0x3CD61492, 0x3C910000)
+
+//defunc:
+
+//.text:3CBA295C                 mov     edx, [eax+10h]
+//.text:3CBA295F                 call    edx
+//.text:3CBA2961                 movzx   eax, al
+//.text:3CBA2964                 test    eax, eax
+
+//.text:3CB853AC                 mov     edx, [eax+10h]
+//.text:3CB853AF                 call    edx
+//.text:3CB853B1                 movzx   eax, al
+//.text:3CB853B4                 test    eax, eax
+
+//.text:3CB90F5C                 mov     edx, [eax+10h]
+//.text:3CB90F5F                 call    edx
+//.text:3CB90F61                 movzx   eax, al
+//.text:3CB90F64                 test    eax, eax
+
+//	REBASE(bnetlib, message_parse_hook, 0x3CB90F5C, 0x3C910000)
+//	REBASE(bnetlib, message_parse_return, 0x3CB90F64, 0x3C910000)
+}
+*/
+
+/* v 0.10.0.9558 */
+void RebaseFunctions()
+{
+	unsigned int bnetlib = (unsigned int) GetModuleHandle("battle.net.dll");
+//	REBASE(bnetlib, D3__std__String, 0x3CE9D67C, 0x3C910000)
+	//3CED4618
+
+//.idata:3CE8669C ; public: __thiscall std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>::~basic_string<char, struct std::char_traits<char>, class std::allocator<char>>(void)
+//.idata:3CE9D69C ; public: __thiscall std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>::~basic_string<char, struct std::char_traits<char>, class std::allocator<char>>(void)
+//.idata:3CE9F6A0 ; public: __thiscall std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>::~basic_string<char, struct std::char_traits<char>, class std::allocator<char>>(void)
+
+
+	REBASE(bnetlib, D3__std__String_delete, 0x3CE9F6A0, 0x3C910000) 
+
+	// may shield colitions
+	// 64 A3 00 00 00 00  8B 45 0C 50 8B 4D 08 51 8d 4d E8 E8 3B ED FF FF  89 45 E4 8B 55 E4 89 55
+	REBASE(bnetlib, D3__TextFormat__PrintToString, 0x3CB75B70, 0x3C910000)
+
+	// 55 8B EC 83 EC 0C 89 4D  F4 8D 45 F8 50 8B 4D F4 8B 11 8B 4D F4 8B 42 48  FF D0 8B 00 8B E5 5D C3
+	REBASE(bnetlib, D3__Message__GetDescriptor, 0x3CB761F0,    0x3C910000)
+	
+	// 55 8B EC 51 89 4D FC 8B  45 FC 8B 40 04 8B E5 5D C3
+	REBASE(bnetlib, D3__Descriptor__full_name, 0x3CB765F0, 0x3C910000) 
+	
+	//55 8B EC 8B 45 0C 8B 10 8B 4D 0C 8B 42 0C FF D0 8B 4D 0C 51 8B 55 08 52 E8 ? ? ? ? 83 C4 08
+	REBASE(bnetlib, deserialize_message, 0x3CB92000, 0x3C910000)
+
+	//83 FF 02 72 ? 8B 4D 08 0F B6 01 66 89 06 66 C1
+	REBASE(bnetlib, bnet_protobuf_parse, 0x3CB91560, 0x3C910000)
+
+//.text:3CD5F618                 mov     ecx, edi
+//.text:3CD5F61A                 mov     byte ptr [ebp-4], 2
+//.text:3CD5F61E                 call    bnet_protobuf_parse
+//.text:3CD5F623                 test    al, al
+
+//.text:3CD5F6D8                 mov     ecx, edi
+//.text:3CD5F6DA                 mov     byte ptr [ebp+var_4], 2
+//.text:3CD5F6DE                 call    sub_3CB902C0
+//.text:3CD5F6E3                 test    al, al
+
+//.text:3CD60A58                 mov     ecx, edi
+//.text:3CD60A5A                 mov     byte ptr [ebp+var_4], 2
+//.text:3CD60A5E                 call    bnet_protobuf_parse
+//.text:3CD60A63                 test    al, al
+
+	//83 FF 02 72 ? 8B 4D 08 0F B6 01 66 89 06 66 C1
+	REBASE(bnetlib, recvmessage_entry, 0x3CD60A58, 0x3C910000)
+	REBASE(bnetlib, recvmessage_return, 0x3CD60A63, 0x3C910000)
+
+
+//hard to update.
+//obsolete
+//	REBASE(bnetlib, sub_3CB90530, 0x3CB90530, 0x3C910000)
+
+//depends on the message being at [ebp-214h]+0x70	
+//.text:3CD5419C mov     ecx, eax
+//.text:3CD5419E call    sub_3CD70930
+//.text:3CD541A3 test    al, al
+
+//.text:3CD7093F pop     esi
+//.text:3CD70940 pop     ebp
+//.text:3CD70941 jmp     sub_3CB90530
+
+//.text:3CD5F0D9                 mov     edx, [ecx]
+//.text:3CD5F0DB                 mov     eax, [edx+10h]
+//.text:3CD5F0DE                 call    eax
+//.text:3CD5F0E0                 test    al, al
+
+//.text:3CD5F199                 mov     edx, [ecx]
+//.text:3CD5F19B                 mov     eax, [edx+10h]
+//.text:3CD5F19E                 call    eax
+//.text:3CD5F1A0                 test    al, al
+
+//.text:3CD60519                 mov     edx, [ecx]
+//.text:3CD6051B                 mov     eax, [edx+10h]
+//.text:3CD6051E                 call    eax
+//.text:3CD60520                 test    al, al
+
+//8B 4E 70 85 C9 74 ? 8B 11 8B 42 10 FF D0 84 C0
+	REBASE(bnetlib, recvmessage1_entry, 0x3CD60519, 0x3C910000)
+	REBASE(bnetlib, recvmessage1_return, 0x3CD60520, 0x3C910000)
+
+//.text:3CBA2BF4                 call    D3__DeserializeMessage
+//.text:3CBA2BF9                 add     esp, 8
+//.text:3CBA2BFC                 movzx   ecx, al
+
+//.text:3CB85644                 call    D3__DeserializeMessage
+//.text:3CB85649                 add     esp, 8
+//.text:3CB8564C                 movzx   ecx, al
+
+//.text:3CB911F4                 call    D3__DeserializeMessage
+//.text:3CB911F9                 add     esp, 8
+//.text:3CB911FC                 movzx   ecx, al
+//.text:3CB911FF                 test    ecx, ecx
+
+//.text:3CD7077D                 mov     eax, [edi]
+//.text:3CD7077F                 mov     edx, [eax+10h]
+//.text:3CD70782                 mov     ecx, edi
+//.text:3CD70784                 call    edx
+
+//.text:3CD7076D                 mov     eax, [edi]
+//.text:3CD7076F                 mov     edx, [eax+10h]
+//.text:3CD70772                 mov     ecx, edi
+//.text:3CD70774                 call    edx
+
+//.text:3CD71C3D                 mov     eax, [edi]
+//.text:3CD71C3F                 mov     edx, [eax+10h]
+//.text:3CD71C42                 mov     ecx, edi
+//.text:3CD71C44                 call    edx
+
+	REBASE(bnetlib, recvheader_entry, 0x3CD71C3D, 0x3C910000)
+	REBASE(bnetlib, recvheader_return, 0x3CD71C44, 0x3C910000)
+
+//.text:3CD7BBFE                 mov     eax, [edx+28h]
+//.text:3CD7BC01                 mov     ecx, esi
+//.text:3CD7BC03                 call    eax
+//.text:3CD7BC05                 pop     edi
+
+//.text:3CD5AAAE                 mov     eax, [edx+28h]
+//.text:3CD5AAB1                 mov     ecx, esi
+//.text:3CD5AAB3                 call    eax
+//.text:3CD5AAB5                 pop     edi
+
+//.text:3CD7084E                 mov     eax, [edx+28h]
+//.text:3CD70851                 mov     ecx, esi
+//.text:3CD70853                 call    eax
+//.text:3CD70855                 pop     edi
+
+//.text:3CD7083E                 mov     eax, [edx+28h]
+//.text:3CD70841                 mov     ecx, esi
+//.text:3CD70843                 call    eax
+//.text:3CD70845                 pop     edi
+
+//.text:3CD71D0E                 mov     eax, [edx+28h]
+//.text:3CD71D11                 mov     ecx, esi
+//.text:3CD71D13                 call    eax
+//.text:3CD71D15                 pop     edi
+
+//8B 16 40 50 8B 42 28 8B CE FF D0 5F 5E B0 01 5B
+	REBASE(bnetlib, sendheader_entry, 0x3CD71D0E, 0x3C910000)
+	REBASE(bnetlib, sendheader_return, 0x3CD71D15, 0x3C910000)
+	
+//.text:3CD7CA7C                 lea     ecx, [edi+ebx]
+//.text:3CD7CA7F                 push    ecx
+//.text:3CD7CA80                 mov     ecx, eax
+//.text:3CD7CA82                 call    edx
+
+//.text:3CD7CF3C                 lea     ecx, [edi+ebx]
+//.text:3CD7CF3F                 push    ecx
+//.text:3CD7CF40                 mov     ecx, eax
+//.text:3CD7CF42                 call    edx
+
+//.text:3CD5BC48                 lea     ecx, [edi+ebx]
+//.text:3CD5BC4B                 push    ecx
+//.text:3CD5BC4C                 mov     ecx, eax
+//.text:3CD5BC4E                 call    edx
+
+//.text:3CD71B5A                 lea     ecx, [ebx+edi]
+//.text:3CD71B5D                 push    ecx
+//.text:3CD71B5E                 mov     ecx, eax
+//.text:3CD71B60                 call    edx
+
+//.text:3CD71B36                 lea     ecx, [ebx+edi]
+//.text:3CD71B39                 push    ecx
+//.text:3CD71B3A                 mov     ecx, eax
+//.text:3CD71B3C                 call    edx
+
+//.text:3CD73009                 lea     ecx, [ebx+edi]
+//.text:3CD7300C                 push    ecx
+//.text:3CD7300D                 mov     ecx, eax
+//.text:3CD7300F                 call    edx
+
+// 8B 10 8B 52 28 8D 0C 3B 51 8B C8 FF D2 8B 45 08 50 8D ? ? C7 46 60 01 00 00 00
+	REBASE(bnetlib, send_message_entry, 0x3CD73009, 0x3C910000)
+	REBASE(bnetlib, send_message_return, 0x3CD7300F, 0x3C910000)
+
+//not found?
+//.text:3CD5F539                 mov     edx, [eax+28h]
+//.text:3CD5F53C                 add     ecx, ebx
+//.text:3CD5F53E                 push    ecx
+//.text:3CD5F53F                 mov     ecx, edi
+
+	REBASE(bnetlib, send_message_entry1, 0x3CD5F539, 0x3C910000)
+	REBASE(bnetlib, send_message_return1, 0x3CD5F53F, 0x3C910000)
+
+//.text:3CD6BBEA                 lea     ecx, [ebx+edi]
+//.text:3CD6BBED                 push    ecx
+//.text:3CD6BBEE                 mov     ecx, eax
+//.text:3CD6BBF0                 call    edx
+
+//.text:3CD4AF49                 lea     ecx, [ebx+edi]
+//.text:3CD4AF4C                 push    ecx
+//.text:3CD4AF4D                 mov     ecx, eax
+//.text:3CD4AF4F                 call    edx
+
+//.text:3CD60109                 lea     ecx, [ebx+edi]
+//.text:3CD6010C                 push    ecx
+//.text:3CD6010D                 mov     ecx, eax
+//.text:3CD6010F                 call    edx
+
+//.text:3CD600F8                 lea     ecx, [ebx+edi]
+//.text:3CD600FB                 push    ecx
+//.text:3CD600FC                 mov     ecx, eax
+//.text:3CD600FE                 call    edx
+
+//.text:3CD6148C                 lea     ecx, [ebx+edi]
+//.text:3CD6148F                 push    ecx
+//.text:3CD61490                 mov     ecx, eax
+//.text:3CD61492                 call    edx
+
+//21 00 6D 00 5F 00 73 00 65 00 6E 00 64 00 46 00 75 00 74 00 75 00 72 00 65 00 00 00
+	REBASE(bnetlib, send_message_entry2, 0x3CD6148C, 0x3C910000)
+	REBASE(bnetlib, send_message_return2, 0x3CD61492, 0x3C910000)
 
 //defunc:
 

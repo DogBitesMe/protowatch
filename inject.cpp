@@ -50,7 +50,7 @@ typedef __stdcall void * (*tfunc_getprocaddr)(HINSTANCE__ * hlib, char * name);
 struct inj {
 	tfunc_loadlib LoadLibraryA;
 	tfunc_getprocaddr GetProcAddress;
-	char dllName[255];
+	char dllName[1024];
 	char funcName[255];
 };
 
